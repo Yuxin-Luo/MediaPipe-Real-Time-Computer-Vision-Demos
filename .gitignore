@@ -1,0 +1,45 @@
+# Large / non-source artifacts — keep only documents and code under git.
+#
+# The repo intentionally tracks only the .py source files, README.md,
+# requirements.txt, and dev_doc/. Anything below is generated locally
+# or pre-built and must NOT be committed.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pre-downloaded model weights (~25MB total; v4 of dev_doc)
+# ─────────────────────────────────────────────────────────────────────────────
+models/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Python bytecode & cache
+# ─────────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Editor / IDE settings (per-developer, not portable)
+# ─────────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OS / shell dotfiles
+# ─────────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build / packaging (future-proofing; no current build emits these)
+# ─────────────────────────────────────────────────────────────────────────────
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/

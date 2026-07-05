@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "module": "MediaPipe-Real-Time-Computer-Vision-Demos",
+  "purpose": "Adapt legacy mp.solutions.* demos to mediapipe.tasks.vision.* so the user environment (video2txt conda env on mediapipe 0.10+) can run them without AttributeError.",
+  "created": "2026-07-05",
+  "references": [
+    {
+      "id": "monkeymeme-dev-history",
+      "kind": "internal-dev-doc",
+      "path": "../MonkeyMeme-Gesture_Tracker/dev_doc/development-history.md",
+      "why_relevant": "Same MediaPipe 0.10 migration (v2) was already completed there — used as a reference pattern for choosing task classes, running mode, and model URLs.",
+      "used_for": ["migration-pattern", "api-naming", "running-mode"]
+    },
+    {
+      "id": "mediapipe-tasks-vision-python",
+      "kind": "official-docs",
+      "url": "https://developers.google.com/mediapipe/solutions/vision/mediapipe_vision_sdk",
+      "topic": "Tasks Python API entry point — class names (FaceDetector / HandLandmarker / PoseLandmarker / FaceLandmarker / ObjectDetector / ImageSegmenter) and import path (`from mediapipe.tasks.python import vision`).",
+      "used_for": ["api-rename", "import-paths"]
+    },
+    {
+      "id": "mediapipe-models-storage",
+      "kind": "official-model-host",
+      "url": "https://storage.googleapis.com/mediapipe-models/",
+      "topic": "Public CDN that hosts the .task / .tflite model files referenced by every demo's MODEL_URL; supports remote model_asset_path so models auto-download on first run.",
+      "used_for": ["model-urls", "auto-download"]
+    },
+    {
+      "id": "mediapipe-running-modes",
+      "kind": "official-docs",
+      "url": "https://developers.google.com/mediapipe/solutions/vision/image_segmenter/python",
+      "topic": "RunningMode.VIDEO + detect_for_video(mp_image, timestamp_ms) is the recommended pattern for offline video / webcam streaming — replaces the legacy `process(rgb_frame)` API call.",
+      "used_for": ["running-mode", "timestamp-handling"]
+    },
+    {
+      "id": "coco-classes-80",
+      "kind": "dataset-label-map",
+      "url": "https://github.com/tensorflow/models/blob/master/research/object_detection/data/mscoco_complete_label_map.pbtxt",
+      "topic": "80-class COCO label map hard-coded into object_detection.py so the Tasks ObjectDetector output (which lacks a built-in label map) can show human-readable names.",
+      "used_for": ["object-detection-label-map"]
+    },
+    {
+      "id": "hand-connections",
+      "kind": "protocol-buffer-spec",
+      "url": "https://github.com/google/mediapipe/blob/master/mediapipe/tasks/python/test_data/hand_landmarker.task",
+      "topic": "Canonical 21-landmark hand topology — pairs (0,1)→(3,4) thumb, (0,5)→(7,8) index, etc.; replicated inline as HAND_CONNECTIONS.",
+      "used_for": ["hand-skeleton-edges"]
+    },
+    {
+      "id": "pose-connections",
+      "kind": "protocol-buffer-spec",
+      "url": "https://github.com/google/mediapipe/blob/master/mediapipe/tasks/python/test_data/pose_landmarker_lite.task",
+      "topic": "Canonical 33-keypoint pose topology used by PoseLandmarker; replicated inline as POSE_CONNECTIONS.",
+      "used_for": ["pose-skeleton-edges"]
+    },
+    {
+      "id": "face-mesh-iris",
+      "kind": "blog-post",
+      "url": "https://google.github.io/mediapipe/solutions/face_mesh",
+      "topic": "Original Face Mesh iris landmark indices (468..477) and IRIS_EDGES subset used for the legacy FACEMESH_IRISES drawing constant.",
+      "used_for": ["iris-edges"]
+    },
+    {
+      "id": "selfie-multiclass-labels",
+      "kind": "model-bundled-readme",
+      "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float16/latest/selfie_multiclass_256x256.tflite",
+      "topic": "Selfie Multiclass 256x256 model: output category_mask where 0=background, 1=person (used by selfie_segmentation.py). Class index for hair in this model is not standardized across MediaPipe releases.",
+      "used_for": ["selfie-segmentation-class-id"]
+    },
+    {
+      "id": "open-cv-color-convention",
+      "kind": "library-docs",
+      "url": "https://docs.opencv.org/4.x/d8/d01/group__imgproc__color__conversions.html",
+      "topic": "OpenCV reads BGR; MediaPipe Tasks expects SRGB. Conversion done via cv2.cvtColor(frame, cv2.COLOR_BGR2RGB) before wrapping into mp.Image.",
+      "used_for": ["color-channel-order"]
+    }
+  ]
+}

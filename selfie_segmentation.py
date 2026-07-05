@@ -1,13 +1,15 @@
-"""Real-time hair segmentation demo (MediaPipe Tasks API).
+"""Real-time selfie segmentation demo (MediaPipe Tasks API).
 
-MediaPipe does NOT ship a dedicated hair model, so this script keeps the
-legacy strategy of treating the selfie segmenter as a hair proxy (the same
-approach the README used to call out). It is migrated from
-``mp.solutions.selfie_segmentation`` (model_selection=1 = landscape)
-to ``mediapipe.tasks.vision.ImageSegmenter``.
+Migrated from ``mp.solutions.selfie_segmentation`` to
+``mediapipe.tasks.vision.ImageSegmenter``.
 
-The binary landscape model emits a soft foreground probability; the
-legacy demo thresholded at 0.5 — preserved here.
+Earlier revisions of this demo referenced ``selfie_multiclass_256x256.tflite``
+which Google has since 404'd on storage.googleapis.com. The demo uses the
+binary ``selfie_segmenter_landscape`` instead — same binary semantics as the
+legacy ``SelfieSegmentation(model_selection=0)``:
+
+    category_mask == 1 → person (keep original pixel)
+    category_mask == 0 → background (replace with BG_COLOR)
 """
 
 import cv2
@@ -31,21 +33,21 @@ FLIP = True
 
 MODEL_PATH = "models/selfie_segmenter_landscape.tflite"
 
-WINDOW_NAME = "Hair Segmentation"
-MASK_THRESHOLD = 0.5
+WINDOW_NAME = "Selfie Segmentation"
+BG_COLOR = (0, 255, 0)  # Green background, matching original demo.
 
 
-def compose(frame_bgr, confidence_mask):
-    """Keep pixels with confidence >= threshold; zero out the rest.
+def compose(frame_bgr, category_mask):
+    """Replace background pixels in ``frame_bgr`` with solid ``BG_COLOR``.
 
-    The landscape binary model returns confidence_mask with shape (H, W, 1);
-    squeeze the trailing axis first so the broadcast against the HxWx3 frame
-    is well-defined.
+    ``category_mask`` is HxW for the multiclass model and HxWx1 for the
+    binary landscape one — squeeze the trailing axis if present.
     """
-    if confidence_mask.ndim == 3:
-        confidence_mask = confidence_mask[..., 0]  # HxW
-    condition = confidence_mask[..., None] >= MASK_THRESHOLD  # HxWx1
-    return np.where(condition, frame_bgr, np.zeros_like(frame_bgr))
+    if category_mask.ndim == 3:
+        category_mask = category_mask[..., 0]
+    condition = category_mask[..., None] == 1  # HxW -> HxWx1, True where person.
+    background = np.full(frame_bgr.shape, BG_COLOR, dtype=np.uint8)
+    return np.where(condition, frame_bgr, background)
 
 
 def main():
@@ -53,8 +55,8 @@ def main():
     options = vision.ImageSegmenterOptions(
         base_options=base_options,
         running_mode=vision.RunningMode.VIDEO,
-        output_category_mask=False,
-        output_confidence_masks=True,
+        output_category_mask=True,
+        output_confidence_masks=False,
     )
     segmenter = vision.ImageSegmenter.create_from_options(options)
 
@@ -73,10 +75,9 @@ def main():
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
             result = segmenter.segment_for_video(mp_image, timestamp_ms)
-            if result.confidence_masks:
-                # 0 = foreground (hair/person by proxy), 1 = background.
-                fg_mask = result.confidence_masks[0].numpy_view()
-                output = compose(frame, fg_mask)
+            mask = result.category_mask.numpy_view()
+            if mask.ndim in (2, 3):
+                output = compose(frame, mask)
                 cv2.imshow(WINDOW_NAME, output)
             else:
                 cv2.imshow(WINDOW_NAME, frame)

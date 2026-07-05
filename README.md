@@ -1,118 +1,140 @@
 # 🧠 MediaPipe Real-Time Computer Vision Demos
 
-[![Python](https://img.shields.io/badge/Python-3.7%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10.0%2B-orange)](https://mediapipe.dev/)
 [![OpenCV](https://img.shields.io/badge/OpenCV-4.5%2B-blue)](https://opencv.org/)
 
-This repository showcases a collection of **real-time computer vision applications** built with **MediaPipe** and **OpenCV**. Each script demonstrates a specific MediaPipe solution for tasks like face detection, hand tracking, pose estimation, iris tracking, hair segmentation, selfie segmentation, and holistic tracking. These demos are designed for learning, prototyping, and exploring MediaPipe's capabilities using a webcam feed.
+A collection of **real-time computer vision demos** built with **MediaPipe Tasks API** and **OpenCV**. Each script showcases one MediaPipe task — face detection, hand tracking, pose estimation, iris / face-mesh, object detection, hair & selfie segmentation, and a composite holistic tracker. Designed for learning, prototyping, and rapid capability checks against a webcam feed.
 
 ## 📦 Contents
 
-| File Name                  | Description |
-|----------------------------|-------------|
-| `face_detection.py`        | Detects human faces in real-time video and draws bounding boxes around them. |
-| `hand_tracking.py`         | Tracks up to two hands, visualizing 21 landmarks per hand with connections. |
-| `pose_estimation.py`       | Estimates full-body pose with 33 keypoints, ideal for motion analysis. |
-| `iris_tracking.py`         | Tracks detailed face mesh, including iris landmarks for gaze estimation. |
-| `hair_segmentation.py`     | Segments the hair region using MediaPipe's SelfieSegmentation as a proxy. |
-| `selfie_segmentation.py`   | Separates the person from the background, replacing it with a solid color (e.g., green). |
-| `holistic_tracking.py`     | Combines face, hand, and pose tracking in a single pipeline for full-body perception. |
+| File Name                  | Tasks API Class Used        | Description |
+|----------------------------|------------------------------|-------------|
+| `face_detection.py`        | `vision.FaceDetector`        | Detects human faces; draws bounding boxes + 6 keypoints. |
+| `hand_tracking.py`         | `vision.HandLandmarker`      | Tracks up to two hands, visualizing 21 landmarks with skeleton connections. |
+| `pose_estimation.py`       | `vision.PoseLandmarker`      | Estimates a 33-keypoint full-body skeleton. |
+| `iris_tracking.py`         | `vision.FaceLandmarker`      | Tracks face mesh (478 landmarks) with iris sub-tessellation. |
+| `object_detection.py`      | `vision.ObjectDetector`      | Runs EfficientDet-Lite0, draws boxes + COCO labels + scores. |
+| `hair_segmentation.py`     | `vision.ImageSegmenter`      | Uses selfie landscape model as a hair proxy. |
+| `selfie_segmentation.py`   | `vision.ImageSegmenter`      | Replaces the background with a solid color (green). |
+| `holistic_tracking.py`     | Face + Pose + Hand Landmarker| Composes face, pose, and hand landmarks in one window. |
 
 ## 🎯 Features
 
-- 🧑‍🦰 **Face Detection**: Identifies faces with bounding boxes for applications like AR filters.
-- 🖐️ **Hand Tracking**: Tracks 21 keypoints per hand, enabling gesture-based controls.
-- 🕺 **Pose Estimation**: Visualizes full-body skeletal structure with 33 landmarks.
-- 👁️ **Iris Tracking**: Detects eye and iris movements for gaze or accessibility applications.
-- 🖼️ **Hair Segmentation**: Isolates hair regions, useful for virtual styling tools.
-- 🎥 **Selfie Segmentation**: Separates the person from the background for virtual backgrounds.
-- 🔁 **Holistic Tracking**: Integrates face, hand, and pose tracking for comprehensive analysis.
+- 🧑‍🦰 **Face Detection** — bounding boxes with keypoints
+- 🖐️ **Hand Tracking** — 21-point skeleton per hand
+- 🕺 **Pose Estimation** — full-body 33-keypoint skeleton
+- 👁️ **Iris Tracking** — face mesh + iris landmarks (gaze, attention)
+- 🖼️ **Hair Segmentation** — uses selfie model as proxy for hair region
+- 🎥 **Selfie Segmentation** — solid-color virtual backgrounds
+- 🔁 **Holistic Tracking** — face + pose + hands composed in one pipeline
 
 ## ⚙️ Installation
 
 ### Prerequisites
-- **Python**: Version 3.7 or higher.
-- **Hardware**: A webcam for real-time input (or modify scripts for video/image input).
-- **OS**: Compatible with Windows, macOS, or Linux.
+- **Python**: 3.9 or higher.
+- **Hardware**: a webcam, or modify the scripts to point at a video file
+  (`cv2.VideoCapture('video.mp4')`).
+- **OS**: Windows / macOS / Linux.
 
 ### Setup
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/mediapipe-vision-demos.git
-   cd mediapipe-vision-demos
 
+```bash
+# Activate the target conda env (example uses the user's `video2txt` env)
+conda activate video2txt
 
-Install dependencies:
 pip install -r requirements.txt
+```
 
-Or manually install:
-pip install mediapipe opencv-python numpy
+Or manually:
 
+```bash
+pip install "mediapipe>=0.10.0" opencv-python numpy
+```
 
-(Optional) Create a requirements.txt file:
-mediapipe>=0.10.0
-opencv-python>=4.5.0
-numpy>=1.21.0
+The demo scripts load model files from the local `./models/` directory — the
+`.task` / `.tflite` files were pre-downloaded into this folder at build time
+because MediaPipe's bundled libcurl HTTP client cannot reach Google's public
+model CDN on some Linux conda environments, even when Python `curl`/`urllib`
+work fine. See `dev_doc/development-history.md` (v4) for full diagnosis.
+Net result: **the demos run fully offline** after `pip install`.
 
+> ⚠️ **`./models/` is `.gitignore`d** — the 6 model files (~25 MB) sit only on
+> the local checkout. Recreate them once via:
+>
+> ```bash
+> mkdir -p models && cd models && \
+>   curl -sS -O https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite && \
+>   curl -sS -O https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task && \
+>   curl -sS -O https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task && \
+>   curl -sS -O https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task && \
+>   curl -sS -O https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.tflite && \
+>   curl -sS -O https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter_landscape/float16/latest/selfie_segmenter_landscape.tflite
+> ```
 
+## 🚀 Usage
 
-🚀 Usage
+```bash
+python face_detection.py
+```
 
-Ensure your webcam is connected or modify the script to use a video file (e.g., cv2.VideoCapture('video.mp4')).
-Run any script from the terminal:python face_detection.py
+Replace `face_detection.py` with any other script (e.g. `hand_tracking.py`,
+`pose_estimation.py`). Each opens a window named after its task; press **q**
+to quit.
 
-Replace face_detection.py with the desired script (e.g., hand_tracking.py, pose_estimation.py, etc.).
-A window will display the webcam feed with detection results:
-Bounding boxes for faces (face_detection.py).
-Landmarks and connections for hands (hand_tracking.py), pose (pose_estimation.py), or both (holistic_tracking.py).
-Iris landmarks for eyes (iris_tracking.py).
-Segmented hair (hair_segmentation.py) or person (selfie_segmentation.py).
+### 🪞 Mirror toggle
 
+Every script exposes a top-of-file constant:
 
-Press q to exit the window.
+```python
+FLIP = True   # mirror the webcam horizontally (selfie view, default)
+FLIP = False  # raw camera matrix, no horizontal flip
+```
 
+By default the scripts mirror the frame so that raising your **left** hand
+shows the figure on screen raising **their left hand too** — the natural
+selfie-view convention. Set `FLIP = False` if you want the unmirrored
+camera matrix (useful when debugging whether an inference result was
+computed against the frame you actually see).
 
-Webcam Issues: If the webcam fails (cv2.VideoCapture(0)), try a different index (e.g., 1) or use a video file.
-Module Errors: Ensure MediaPipe is updated (pip install --upgrade mediapipe).
-Performance: For slow performance, reduce video resolution or use a lighter MediaPipe model (adjust model_selection in scripts).
-Hair Segmentation: Note that hair_segmentation.py uses SelfieSegmentation as a proxy, as MediaPipe lacks a dedicated hair model.
+## 🧠 API Migration Note
 
-📚 References
+The 8 demos in this folder originally targeted MediaPipe's legacy
+`mp.solutions.*` namespace, which was removed in MediaPipe 0.10. They have
+been rewritten on top of `mediapipe.tasks.vision.*` so they run unmodified
+on MediaPipe >= 0.10:
 
-MediaPipe Official Documentation
-MediaPipe Python Solutions
-OpenCV Documentation
-MediaPipe GitHub
+- `mp.solutions.face_detection` → `vision.FaceDetector`
+- `mp.solutions.hands`           → `vision.HandLandmarker`
+- `mp.solutions.pose`            → `vision.PoseLandmarker`
+- `mp.solutions.face_mesh`       → `vision.FaceLandmarker`
+- `mp.solutions.object_detection` → `vision.ObjectDetector`
+- `mp.solutions.selfie_segmentation` → `vision.ImageSegmenter`
+- `mp.solutions.holistic`        → composed: Face + Pose + Hand Landmarker
 
-📝 License
-This project is licensed under the MIT License. See the LICENSE file for details.
-🙌 Contributions
-Contributions are welcome! Feel free to:
+`HAND_CONNECTIONS` / `POSE_CONNECTIONS` / `FACEMESH_TESSELATION` constants
+only existed in the legacy namespace, so the new scripts carry inline tables
+of the standard connection pairs. Full historical rationale lives in
+[`dev_doc/development-history.md`](dev_doc/development-history.md).
 
-Submit pull requests for bug fixes or new features.
-Open issues for questions or suggestions.
-Star the repository to show support! 🌟
+## 🛠 Troubleshooting
 
-📬 Contact
-For questions or feedback, create an issue or reach out via naveensanthosh830@gmail.com.
+- **Webcam unavailable** — try a different index (`cv2.VideoCapture(1)`) or a video file path.
+- **`AttributeError: module 'mediapipe' has no attribute 'solutions'`** —
+  you are running the *old* versions of these scripts. Pull the migrated
+  versions from this folder.
+- **First run is slow** — MediaPipe downloads the model file on first use;
+  subsequent runs use the local cache.
+- **Hair quality** — `hair_segmentation.py` is a proxy (no dedicated hair model in MediaPipe); switch to `selfie_segmentation.py` for cleaner body extraction.
 
-Happy coding! 🚀
+## 📚 References
 
-### Enhancements Made
-1. **Badges**: Added GitHub badges for Python version, MediaPipe, OpenCV, and MIT License for visual appeal and quick information.
-2. **Structure**: Organized sections clearly with emojis for readability and a professional look.
-3. **Requirements**: Included a `requirements.txt` suggestion for easy dependency management.
-4. **Screenshots Placeholder**: Kept the screenshot section as a placeholder, as you can add images later to the repository.
-5. **Troubleshooting**: Added a dedicated section for common issues, based on previous interactions (e.g., webcam or module errors).
-6. **Consistency**: Corrected the typo in your original README (`selfi_segmentation.py` → `selfie_segmentation.py`) and ensured all file names match the provided scripts.
-7. **Repository Name**: Suggested `mediapipe-vision-demos` as a placeholder; replace it with your actual repository name.
-8. **License**: Referenced an MIT License file (you can create one if needed; let me know if you want a sample).
+- [MediaPipe Tasks — Python vision API](https://developers.google.com/mediapipe/solutions/vision/mediapipe_vision_sdk)
+- [MediaPipe Studio (live model playground)](https://mediapipe-studio.webapps.google.com/)
+- [OpenCV Python tutorials](https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html)
+- [MediaPipe GitHub repository](https://github.com/google-ai-edge/mediapipe)
 
-### Additional Files (Optional)
-requirements.txt: Already included in the README setup instructions:mediapipe>=0.10.0
-opencv-python>=4.5.0
-numpy>=1.21.0
-Next Steps
+## 📝 License
 
-If you need help with any of these steps, want to add specific features, or need assistance setting up the repository, let me know!
+MIT. See [LICENSE](LICENSE) if present, otherwise the standard MIT terms.
